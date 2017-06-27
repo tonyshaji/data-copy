@@ -8,14 +8,14 @@ var gulp = require('gulp');
 var git = require('gulp-git');
 var http = require('http');
 var jenkinsapi = require('jenkins-api');
-var jenkins = require('jenkins')({ baseUrl: 'http://admin:qwerty@localhost:8080', crumbIssuer:false })
+var jenkins = require('jenkins')({ baseUrl: 'http://tony:qwerty@ec2-52-11-209-11.us-west-2.compute.amazonaws.com:8080', crumbIssuer:false });
 //global.XMLHttpRequest = require("xmlhttprequest");
 
-var i=0;
+var i=0,nex,done=null;
 // Set up middleware
 //var requireAuth = passport.authenticate('jwt', { session: false });
 function readWriteAsync(item) {
-
+i=0
    // fs.readFile('/data/myapp', 'utf-8', function(err, data){
    //  		if (err) throw err;
 
@@ -48,7 +48,7 @@ function readWriteAsync(item) {
 		// });
   		//console.log('file renamed!');
   		 	var string = item.bundleId.replace(/\./gim,/\//);
-  		 	filechange(item,string);
+  		 	return filechange(item,string);
   		 	//callback(false,item.appName);
   		 	//var filename = "/MainActivity.java";
   		
@@ -101,17 +101,17 @@ function readWriteAsync(item) {
 
 }
 function filechange(item,string){
-
-		checkFile("/data/"+item.appName+"/app/src/",item.appName,item.bundleId);
-		checkFile("/data/"+item.appName+"/app/build.gradle",item.appName,item.bundleId);
-	 	copyFile("/data/"+item.appName+"/app/src/main/java/"+string,item.appName,item.bundleId,"/MainActivity.java",'/data/MainActivity.java');
-  		copyFile("/data/"+item.appName+"/app/src/androidTest/java/"+string,item.appName,item.bundleId,"/ExampleInstrumentedTest.java",'/data/ExampleInstrumentedTest.java');
-  		copyFile("/data/"+item.appName+"/app/src/test/java/"+string,item.appName,item.bundleId,"/ExampleUnitTest.java",'/data/ExampleUnitTest.java');
-  		
+	var result;
+	checkFile("/data/"+item.appName+"/app/src/",item.appName,item.bundleId);
+	checkFile("/data/"+item.appName+"/app/build.gradle",item.appName,item.bundleId);
+	result = copyFile("/data/"+item.appName+"/app/src/main/java/"+string,item.appName,item.bundleId,"/MainActivity.java",'/data/MainActivity.java');
+  	result = copyFile("/data/"+item.appName+"/app/src/androidTest/java/"+string,item.appName,item.bundleId,"/ExampleInstrumentedTest.java",'/data/ExampleInstrumentedTest.java');
+  	result = copyFile("/data/"+item.appName+"/app/src/test/java/"+string,item.appName,item.bundleId,"/ExampleUnitTest.java",'/data/ExampleUnitTest.java');
   	
-  		
-  		console.log("git");
-	return;
+  	//while(result === undefined){}
+  	
+  	console.log("git");
+	return result;
 }
 function checkFile(target,appName,bundleId){
 
@@ -181,7 +181,7 @@ function copyFile(filepath,appName,bundleId,filename,reqFile){
       				if (err) throw err;
       				console.log('fileAsync complete');
       				callback(false,appName);
-      				return;
+      				return ;
     			});
     		});
   		
@@ -190,43 +190,71 @@ function copyFile(filepath,appName,bundleId,filename,reqFile){
 }
 
 var callback = function (err, data) {
-  if (err) return console.error(err);
-  i++;
-  console.log(i);
-  if(i>=3){
+  	if (err) return console.error(err);
+  	i++;
+  	console.log(i);
+  	if(i>=3){
   	require('simple-git')('/data/'+data+'/')
          .init()
          .add('/data/'+data+'/')
-         .commit("irst commit!");
+         .commit("girst commit!")
+         .addRemote('origin', 'https://github.com/tonyshaji/new-app.git')
+         .push('origin', "master");
+
          //String username = "admin";
         //String password = "qwerty";"",
- //    http.get("http://localhost:8080/job/app/?token=app", function(res){
+ //    http.get("http://ec2-52-11-209-11.us-west-2.compute.amazonaws.com:8080/job/app/build?token=app", function(res){
 	// 	res.setEncoding('utf8');
 	// 	res.on('data', function(chunk) {
 	// 		console.log(chunk);
 	// 	});
 	// });
+	//var next,done;
+	jenkins.job.get('app', function(err, data) {
+  		if (err) throw err;
+  		
+  		console.log( "This Are",nex,done);
+  		console.log('build', "first");
+	});
 
 	jenkins.job.build('app', function(err, data) {
-  if (err) throw err;
+  		if (err) throw err;
 
-  console.log('queue item number', data);
-});
-
-	/*var jenkins = jenkinsapi.init("http://tony:qwerty@localhost:8080");
-	jenkins.enable_job('/job/app/build?token=myapp', function(err, data) {
-  		if (err){
-  		 	return console.log(err);
-  		}
-  		console.log(data)
+  		console.log('queue item number', data);
 	});
-	jenkins.build('/job/app/build?token=myapp', function(err, data) {
-  		if (err){ 
-  			return console.log(err); 
-  		}
-  		console.log("data");
-  		console.log(JSON.stringify(data));
-	});*/
+	//do{
+		jenkins.job.get('app', function(err, data) {
+  			if (err) throw err;
+  			nex=data.nextBuildNumber;
+  			done=data.lastStableBuild.number;
+  			console.log( "This Are",nex,done);
+  			console.log('build', "SECOND");
+		});
+		
+		// if (next==done){
+		// 	break;
+		// }
+	//}
+	//while(true);
+	console.log(done);
+	return done;
+
+	//console.log( "This Are",next,done);
+
+	//var jenkins = jenkinsapi.init("http://tony:qwerty@ec2-52-11-209-11.us-west-2.compute.amazonaws.com:8080");
+	// jenkins.enable_job('/job/app/build?token=myapp', function(err, data) {
+ //  		if (err){
+ //  		 	return console.log(err);
+ //  		}
+ //  		console.log(data)
+	// });
+	// jenkins.build('/job/app/build?token=myapp', function(err, data) {
+ //  		if (err){ 
+ //  			return console.log(err); 
+ //  		}
+ //  		console.log("data");
+ //  		console.log(JSON.stringify(data));
+	// });
          //.addRemote('origin', 'https://tony_shaji@bitbucket.org/tony_shaji/easy-app.git')
          //.push('-u','origin', 'master');
  //   gulp.task('add', function(){
@@ -247,13 +275,17 @@ var callback = function (err, data) {
 	// });
  //    console.log("GIT got");
   }
-};
+}
 
 router.post('/', function(req, res, next){
 	
-	readWriteAsync(req.body);
+	var result = readWriteAsync(req.body);
 	console.log(req.body.color);
-	res.status(201).json({status:'success'});
+	 // while(done==null){
+		
+	 // }
+	res.status(201).json({status:'success',data:nex});
+	
 	
 });
 
