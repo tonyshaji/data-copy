@@ -27,7 +27,7 @@ function write(){
 	var successCount=0,failedCount=0;
 	var link="http://api.pharmeasy.in/v2/medicine-guide/"
 	//var no =26570;
-	for(i=26570;i<26580;i++)
+	for(i=1;i<=1000000;i++)
 	{
 		var url = link+i;
 		client.get(url, function (data, response) {
